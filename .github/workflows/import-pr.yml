@@ -1,0 +1,31 @@
+name: Import community PR
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number on mirror-demo-public
+        required: true
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  import:
+    if: github.repository == 'michalpomykacz/mirror-demo-private'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch the public PR and open a private one
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+        run: |
+          case "$PR" in ''|*[!0-9]*) echo "PR must be a number"; exit 1;; esac
+          branch="community/pr-$PR"
+          git fetch https://github.com/michalpomykacz/mirror-demo-public.git "pull/$PR/head:$branch"
+          git push origin "$branch"
+          title=$(gh pr view "$PR" -R michalpomykacz/mirror-demo-public --json title -q .title)
+          gh pr create --head "$branch" --base main \
+            --title "[community #$PR] $title" \
+            --body "Imported from https://github.com/michalpomykacz/mirror-demo-public/pull/$PR. Merge with a merge commit so the public PR shows as Merged."

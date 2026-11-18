@@ -1,0 +1,19 @@
+name: Sync to public
+on:
+  push:
+    branches: [main]
+jobs:
+  sync:
+    if: github.repository == 'michalpomykacz/mirror-demo-private'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push main to the public mirror
+        env:
+          KEY: ${{ secrets.PUBLIC_DEPLOY_KEY }}
+        run: |
+          install -m 600 /dev/null ~/key && echo "$KEY" > ~/key
+          export GIT_SSH_COMMAND="ssh -i ~/key -o StrictHostKeyChecking=accept-new"
+          git push git@github.com:michalpomykacz/mirror-demo-public.git HEAD:main
